@@ -34,7 +34,7 @@ async def categorize_transactions(transactions: list[dict]) -> list[dict]:
 
 async def generate_insights(analysis_data: dict) -> list[str]:
     prompt = f"""You are an expert AI financial advisor. Review the user's financial summary and provide 4 to 6 specific, actionable, bullet-point insights. 
-    Use the exact numbers provided.
+    Use the exact numbers provided. All amounts are in Indian Rupees (INR).
     Data: {json.dumps(analysis_data)}
     Respond strictly in JSON format with a single key "insights" containing an array of strings."""
 
@@ -46,9 +46,25 @@ async def generate_insights(analysis_data: dict) -> list[str]:
     result = json.loads(response.choices[0].message.content)
     return result.get("insights", ["Keep track of your spending to improve your financial health."])
 
+async def generate_budget_warnings(budget_summary: str) -> list[str]:
+    prompt = f"""You are a personal finance advisor. Based on the budget usage below, generate short, specific, actionable warnings for categories that are near or over budget (>= 80%). 
+    If a category is well under budget, do not generate a warning for it.
+    All amounts are in Indian Rupees (INR).
+    {budget_summary}
+    
+    Respond strictly in JSON format with a single key "warnings" containing an array of strings."""
+
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "system", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+    result = json.loads(response.choices[0].message.content)
+    return result.get("warnings", [])
+
 async def stream_chat(messages: list, transaction_context: str):
     system_prompt = f"""You are a helpful, expert AI financial advisor. You have access to the user's current transaction data context.
-    Keep answers concise, friendly, and analytical. Format with clean spacing.
+    Keep answers concise, friendly, and analytical. Format with clean spacing. All amounts are in Indian Rupees (INR).
     Context Data: {transaction_context}"""
     
     api_messages = [{"role": "system", "content": system_prompt}]

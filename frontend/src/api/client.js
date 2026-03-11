@@ -1,7 +1,7 @@
 import axios from 'axios';
-
+const BACKEND_URL = import.meta.env.BACKEND_URL;
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: BACKEND_URL,
 });
 
 export const uploadFile = async (file) => {
@@ -18,8 +18,13 @@ export const analyzeSession = async (sessionId) => {
   return response.data;
 };
 
+export const analyzeBudget = async (sessionId, budgets) => {
+  const response = await api.post('/budget-insight', { session_id: sessionId, budgets });
+  return response.data;
+};
+
 export const streamChat = async (sessionId, messages, onChunk) => {
-  const response = await fetch('http://localhost:8000/chat', {
+  const response = await fetch(`${BACKEND_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, messages }),

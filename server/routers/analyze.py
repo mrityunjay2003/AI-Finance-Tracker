@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from models import AnalysisResult, SESSION_STORE
-from services.gpt_service import categorize_transactions, generate_insights
+from services.gpt_service import categorize_transactions, generate_insights, generate_budget_warnings
 from services.anomaly import detect_anomalies
+from typing import Dict
 import pandas as pd
 
 router = APIRouter()
@@ -10,27 +11,26 @@ router = APIRouter()
 class AnalyzeRequest(BaseModel):
     session_id: str
 
+class BudgetRequest(BaseModel):
+    session_id: str
+    budgets: Dict[str, float]
+
 @router.post("/analyze", response_model=AnalysisResult)
 async def analyze_data(req: AnalyzeRequest):
     if req.session_id not in SESSION_STORE:
-        raise HTTPException(status_code=404, detail="Session not found.")
-        
+        raise HTTPException(status_code=404, detail="Session not found.")			
+            
     transactions = SESSION_STORE[req.session_id]
     
-    # 1. Categorize
     transactions = await categorize_transactions(transactions)
     
-    # 2. Detect Anomalies
     transactions = detect_anomalies(transactions)
     
-    # 3. Calculate Totals
     df = pd.DataFrame(transactions)
     
-    # Category totals (expenses only)
     expenses = df[df['amount'] < 0]
     category_totals = expenses.groupby('category')['amount'].sum().abs().to_dict() if not expenses.empty else {}
     
-    # Monthly totals (net)
     df['month'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m')
     monthly_totals = df.groupby('month')['amount'].sum().to_dict()
     
@@ -42,7 +42,6 @@ async def analyze_data(req: AnalyzeRequest):
         "anomaly_count": len(anomalies)
     }
     
-    # 4. Generate Insights
     insights = await generate_insights(summary_data)
     
     result = AnalysisResult(
@@ -54,6 +53,50 @@ async def analyze_data(req: AnalyzeRequest):
         anomalies=anomalies
     )
     
-    # Update store with analyzed data
     SESSION_STORE[req.session_id] = result.model_dump()
     return result
+
+@router.post("/budget-insight")
+async def get_budget_insight(req: BudgetRequest):
+    if req.session_id not in SESSION_STORE:
+        raise HTTPException(status_code=404, detail="Session not found.")
+        
+    data = SESSION_STORE[req.session_id]
+    category_totals = data.get("category_totals", {})
+    
+    budget_status = {}
+    summary_lines = []
+    
+    for category, limit in req.budgets.items():
+        if limit <= 0:
+            continue
+            
+        spent = category_totals.get(category, 0.0)
+        percent = (spent / limit) * 100
+        
+        if percent >= 100:
+            status = "danger"
+        elif percent >= 80:
+            status = "warning"
+        else:
+            status = "safe"
+            
+        budget_status[category] = {
+            "budget": limit,
+            "spent": spent,
+            "percent": percent,
+            "status": status
+        }
+        
+        summary_lines.append(f"{category}: spent ₹{spent:.2f} of ₹{limit:.2f} budget ({percent:.1f}%)")
+        
+    summary_str = "\n".join(summary_lines)
+    
+    warnings = []
+    if summary_str:
+        warnings = await generate_budget_warnings(summary_str)
+        
+    return {
+        "budget_status": budget_status,
+        "warnings": warnings
+    }

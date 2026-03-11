@@ -1,9 +1,11 @@
 import React from 'react';
-import { DollarSign, ArrowUpRight, ArrowDownRight, AlertTriangle, IndianRupee } from 'lucide-react';
+import { DollarSign, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
 import CategoryChart from './CategoryChart';
 import MonthlyTrendChart from './MonthlyTrendChart';
 import InsightPanel from './InsightPanel';
 import AnomalyCard from './AnomalyCard';
+import BudgetTracker from './BudgetTracker';
+import TransactionTable from './TransactionTable';
 
 export default function Dashboard({ data }) {
   const totalIncome = data.transactions
@@ -36,7 +38,7 @@ export default function Dashboard({ data }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Income" amount={totalIncome} icon={ArrowUpRight} colorClass="text-emerald-400" />
         <StatCard title="Total Spent" amount={totalSpent} icon={ArrowDownRight} colorClass="text-rose-400" />
-        <StatCard title="Net Savings" amount={netSavings} icon={IndianRupee} colorClass={netSavings >= 0 ? "text-indigo-400" : "text-amber-400"} />
+        <StatCard title="Net Savings" amount={netSavings} icon={DollarSign} colorClass={netSavings >= 0 ? "text-indigo-400" : "text-amber-400"} />
         <StatCard title="Anomalies Found" amount={data.anomalies.length} icon={AlertTriangle} colorClass="text-amber-500" />
       </div>
 
@@ -77,6 +79,19 @@ export default function Dashboard({ data }) {
           </div>
         </div>
       </div>
+
+      {/* New Budget Tracker Component */}
+      <BudgetTracker 
+        categoryTotals={data.category_totals} 
+        sessionId={data.session_id} 
+      />
+
+      {/* New Transaction Table Component */}
+      <TransactionTable 
+        transactions={data.transactions} 
+        categoryTotals={data.category_totals}
+        insights={data.insights}
+      />
     </div>
   );
 }

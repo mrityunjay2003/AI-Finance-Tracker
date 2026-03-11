@@ -7,7 +7,6 @@ def parse_csv(file_bytes: bytes) -> list[dict]:
     df = pd.read_csv(io.BytesIO(file_bytes))
     cols = [c.lower() for c in df.columns]
     
-    # Normalize columns based on common formats
     if 'debit' in cols and 'credit' in cols:
         df['amount'] = df['credit'].fillna(0) - df['debit'].fillna(0)
     elif 'amount' in cols:
@@ -21,7 +20,9 @@ def parse_csv(file_bytes: bytes) -> list[dict]:
     if not desc_col or not date_col:
         raise ValueError("Could not detect Date or Description columns.")
 
-    df['date'] = pd.to_datetime(df[date_col], format='mixed', dayfirst=False).dt.strftime('%Y-%m-%d')
+    df['date'] = pd.to_datetime(df[date_col], errors='coerce')
+    df = df.dropna(subset=['date'])
+    df['date'] = df['date'].dt.strftime('%Y-%m-%d')
     df = df.dropna(subset=['amount'])
     df = df.sort_values('date', ascending=True)
 
