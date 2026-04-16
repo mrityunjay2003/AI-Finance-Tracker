@@ -12,7 +12,7 @@ export default function CategoryChart({ data }) {
   if (chartData.length === 0) return <div className="text-slate-500 text-center py-10">No expenses recorded</div>;
 
   return (
-    <div className="h-[300px] w-full">
+    <div id="category-pie-chart" className="h-[300px] w-full" style={{ backgroundColor: '#1e293b', color: '#f8fafc' }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -29,9 +29,18 @@ export default function CategoryChart({ data }) {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip 
-            formatter={(value) => `$₹{value.toFixed(2)}`}
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
+          <Tooltip
+            formatter={(value) => `₹${Number(value).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}`}
+            contentStyle={{
+              backgroundColor: '#1e293b',
+              border: '1px solid #475569',
+              borderRadius: '8px',
+              color: '#f8fafc'
+            }}
+            itemStyle={{ color: '#818cf8' }}
           />
           <Legend wrapperStyle={{ paddingTop: '20px' }} />
         </PieChart>

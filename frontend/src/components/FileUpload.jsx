@@ -1,4 +1,4 @@
-import React,{ useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { UploadCloud, FileText, Database } from 'lucide-react';
 
 const SAMPLE_CSV = `Date,Description,Amount
@@ -52,7 +52,7 @@ export default function FileUpload({ onUpload }) {
 
   return (
     <div className="max-w-2xl mx-auto mt-12">
-      <div 
+      <div
         className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors
           ${dragActive ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-700 bg-slate-800'}`}
         onDragEnter={handleDrag}
@@ -60,15 +60,19 @@ export default function FileUpload({ onUpload }) {
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-        <input 
-          ref={inputRef} type="file" className="hidden" accept=".csv" onChange={handleChange}
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept=".csv,.pdf" // Updated to include .pdf
+          onChange={handleChange}
         />
-        
+
         {file ? (
           <div className="flex flex-col items-center gap-4">
             <FileText className="w-16 h-16 text-indigo-400" />
             <p className="text-lg font-medium text-slate-200">{file.name}</p>
-            <button 
+            <button
               onClick={() => onUpload(file)}
               className="mt-4 px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
             >
@@ -78,9 +82,10 @@ export default function FileUpload({ onUpload }) {
         ) : (
           <div className="flex flex-col items-center gap-4">
             <UploadCloud className="w-16 h-16 text-slate-400" />
-            <p className="text-lg text-slate-300">Drag & drop your bank statement CSV</p>
+            <p className="text-lg text-slate-300">Drag & drop your statement (CSV or PDF)</p>
+            <p className="text-sm text-slate-500">Securely processed and PII-redacted</p>
             <p className="text-sm text-slate-500">or</p>
-            <button 
+            <button
               onClick={() => inputRef.current.click()}
               className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
             >
@@ -93,7 +98,7 @@ export default function FileUpload({ onUpload }) {
       {!file && (
         <div className="mt-8 text-center">
           <p className="text-slate-500 mb-4">Don't have a CSV handy?</p>
-          <button 
+          <button
             onClick={handleSample}
             className="flex items-center gap-2 mx-auto px-4 py-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
           >

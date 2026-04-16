@@ -1,4 +1,4 @@
-import React,{ useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import ChatPanel from './components/ChatPanel';
@@ -6,7 +6,7 @@ import { uploadFile, analyzeSession } from './api/client';
 import { Loader2, RefreshCw } from 'lucide-react';
 
 export default function App() {
-  // 1. Initialize state from sessionStorage if available
+  // 1. Initialize state from sessionStorage to handle page refreshes
   const [stage, setStage] = useState(() => {
     return sessionStorage.getItem('finance_stage') || 'idle';
   });
@@ -19,38 +19,48 @@ export default function App() {
     const saved = sessionStorage.getItem('finance_result');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Feature D: State for Privacy Redaction Count
+  const [piiCount, setPiiCount] = useState(() => {
+    return parseInt(sessionStorage.getItem('finance_pii') || '0', 10);
+  });
   
   const [error, setError] = useState(null);
 
-  // 2. Automatically save state to sessionStorage whenever it changes
+  // 2. Persist all state changes to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('finance_stage', stage);
     if (sessionId) sessionStorage.setItem('finance_sessionId', sessionId);
     if (analysisResult) sessionStorage.setItem('finance_result', JSON.stringify(analysisResult));
-  }, [stage, sessionId, analysisResult]);
+    sessionStorage.setItem('finance_pii', piiCount.toString());
+  }, [stage, sessionId, analysisResult, piiCount]);
 
   const handleUpload = async (file) => {
     try {
       setError(null);
       setStage('uploaded');
+
+      // Step 1: Upload and Redact PII
       const uploadRes = await uploadFile(file);
       setSessionId(uploadRes.session_id);
+      setPiiCount(uploadRes.pii_redacted_count); // Capture the redaction count from Feature D
       
+      // Step 2: Run AI Categorization, Subscriptions, and RAG Indexing
       const analysisRes = await analyzeSession(uploadRes.session_id);
       setAnalysisResult(analysisRes);
       setStage('analyzed');
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "An error occurred");
+      setError(err.response?.data?.detail || err.message || "An error occurred during analysis.");
       setStage('idle');
     }
   };
 
-  // 3. Add a function to clear the session and go back home
   const handleReset = () => {
     sessionStorage.clear();
     setStage('idle');
     setSessionId(null);
     setAnalysisResult(null);
+    setPiiCount(0);
     setError(null);
   };
 
@@ -64,7 +74,6 @@ export default function App() {
           <p className="text-slate-400 mt-1">Intelligent insights for your spending habits</p>
         </div>
         
-        {/* Render a Start Over button if we aren't on the idle screen */}
         {stage !== 'idle' && (
           <button 
             onClick={handleReset}
@@ -83,19 +92,27 @@ export default function App() {
         </div>
       )}
 
+      {/* Stage: Idle - Initial Upload View */}
       {stage === 'idle' && <FileUpload onUpload={handleUpload} />}
       
+      {/* Stage: Uploaded - Show AI processing state */}
       {stage === 'uploaded' && (
         <div className="flex flex-col items-center justify-center py-32 space-y-4">
           <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-          <h2 className="text-xl text-slate-300">Analyzing your finances with AI...</h2>
-          <p className="text-slate-500">Categorizing transactions, generating insights, and checking for anomalies.</p>
+          <h2 className="text-xl text-slate-300">Processing with Privacy Guard & AI...</h2>
+          <p className="text-slate-500 text-center max-w-md">
+            Scrubbing PII, identifying subscriptions, and building your semantic search index.
+          </p>
         </div>
       )}
 
+      {/* Stage: Analyzed - Final Dashboard View */}
       {stage === 'analyzed' && analysisResult && (
         <>
-          <Dashboard data={analysisResult} />
+          <Dashboard 
+            data={analysisResult} 
+            piiCount={piiCount} 
+          />
           <ChatPanel sessionId={sessionId} />
         </>
       )}

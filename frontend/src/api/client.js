@@ -5,6 +5,11 @@ const api = axios.create({
   baseURL: BACKEND_URL,
 });
 
+export const semanticSearch = async (sessionId, query) => {
+  const response = await api.post('/search', { session_id: sessionId, query });
+  return response.data.results;
+};
+
 export const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append('file', file);

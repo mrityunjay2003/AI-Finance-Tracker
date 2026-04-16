@@ -6,12 +6,14 @@ import InsightPanel from './InsightPanel';
 import AnomalyCard from './AnomalyCard';
 import BudgetTracker from './BudgetTracker';
 import TransactionTable from './TransactionTable';
+import SubscriptionCard from './SubscriptionCard';
+import PrivacyShield from './PrivacyShield';
 
-export default function Dashboard({ data }) {
+export default function Dashboard({ data, piiCount }) {
   const totalIncome = data.transactions
     .filter(t => t.amount > 0 && t.category === 'Income')
     .reduce((sum, t) => sum + t.amount, 0);
-    
+
   const totalSpent = data.transactions
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -23,7 +25,7 @@ export default function Dashboard({ data }) {
       <div>
         <p className="text-slate-400 text-sm font-medium mb-1">{title}</p>
         <p className={`text-2xl font-bold ${colorClass}`}>
-          ₹{Math.abs(amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+          ₹{Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </p>
       </div>
       <div className={`p-3 rounded-lg bg-slate-900 ${colorClass}`}>
@@ -33,46 +35,52 @@ export default function Dashboard({ data }) {
   );
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* Summary Cards */}
+    <div className="space-y-6 pb-24 relative">
+      <PrivacyShield piiCount={piiCount} />
+      {/* Summary Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Income" amount={totalIncome} icon={ArrowUpRight} colorClass="text-emerald-400" />
-        <StatCard title="Total Spent" amount={totalSpent} icon={ArrowDownRight} colorClass="text-rose-400" />
-        <StatCard title="Net Savings" amount={netSavings} icon={DollarSign} colorClass={netSavings >= 0 ? "text-indigo-400" : "text-amber-400"} />
-        <StatCard title="Anomalies Found" amount={data.anomalies.length} icon={AlertTriangle} colorClass="text-amber-500" />
+        <StatCard title="Total Income" amount={totalIncome} icon={ArrowUpRight} colorClass="text-emerald-400" /> <StatCard title="Total Spent" amount={totalSpent} icon={ArrowDownRight} colorClass="text-rose-400" /> <StatCard title="Net Savings" amount={netSavings} icon={DollarSign} colorClass={netSavings >= 0 ? "text-indigo-400" : "text-amber-400"} /> <StatCard title="Anomalies Found" amount={data.anomalies.length} icon={AlertTriangle} colorClass="text-amber-500" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Charts */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main Grid: 2/3 and 1/3 split */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Left Column: Charts (Span 8) */}
+        <div className="lg:col-span-8 space-y-6">
           <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl">
             <h3 className="text-lg font-semibold text-white mb-4">Monthly Trends</h3>
             <MonthlyTrendChart data={data.monthly_totals} />
           </div>
-          <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl">
-            <h3 className="text-lg font-semibold text-white mb-4">Spending by Category</h3>
-            <CategoryChart data={data.category_totals} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl">
+              <h3 className="text-lg font-semibold text-white mb-4">Spending by Category</h3>
+              <CategoryChart data={data.category_totals} />
+            </div>
+            {/* Moved SubscriptionCard here to fill horizontal space next to Pie Chart */}
+            <SubscriptionCard subscriptions={data.subscriptions} />
           </div>
         </div>
 
-        {/* Insights & Anomalies */}
-        <div className="space-y-6">
-          <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl">
+        {/* Right Column: AI & Alerts (Span 4) */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl flex-grow">
             <InsightPanel insights={data.insights} />
           </div>
+
           <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
               Detected Anomalies
             </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               {data.anomalies.length > 0 ? (
                 data.anomalies.map(anomaly => (
                   <AnomalyCard key={anomaly.id} anomaly={anomaly} />
                 ))
               ) : (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-lg text-emerald-400 text-center">
-                  No anomalies detected. Great job!
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-lg text-emerald-400 text-center text-sm">
+                  No anomalies detected.
                 </div>
               )}
             </div>
@@ -80,18 +88,9 @@ export default function Dashboard({ data }) {
         </div>
       </div>
 
-      {/* New Budget Tracker Component */}
-      <BudgetTracker 
-        categoryTotals={data.category_totals} 
-        sessionId={data.session_id} 
-      />
-
-      {/* New Transaction Table Component */}
-      <TransactionTable 
-        transactions={data.transactions} 
-        categoryTotals={data.category_totals}
-        insights={data.insights}
-      />
+      {/* Bottom Full-Width Sections */}
+      <BudgetTracker categoryTotals={data.category_totals} sessionId={data.session_id} />
+      <TransactionTable transactions={data.transactions} categoryTotals={data.category_totals} insights={data.insights} sessionId={data.session_id} />
     </div>
   );
 }

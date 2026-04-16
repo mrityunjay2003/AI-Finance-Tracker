@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Dict, Optional
 
 # In-memory session store
@@ -20,6 +20,7 @@ class AnalysisResult(BaseModel):
     monthly_totals: Dict[str, float]
     insights: List[str]
     anomalies: List[Transaction]
+    subscriptions: Optional[List[Dict]] = []
 
 class ChatMessage(BaseModel):
     role: str
@@ -33,3 +34,4 @@ class UploadResponse(BaseModel):
     session_id: str
     transaction_count: int
     preview: List[Transaction]
+    pii_redacted_count: int = 0

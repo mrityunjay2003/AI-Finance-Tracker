@@ -5,3 +5,4 @@ pandas>=2.2
 openai>=1.10
 python-multipart
 python-dotenv
+pdfplumber==0.10.3

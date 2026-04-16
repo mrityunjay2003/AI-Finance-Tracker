@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="Finance Analyzer API")
-
+origins = [os.getenv("FRONTEND_URL")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL")],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,4 +26,5 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=os.getenv("PORT"))
+    port_env = os.getenv("PORT", 8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(port_env))
